@@ -1,4 +1,5 @@
 from django.db.models.signals import post_syncdb
+from django.db import transaction
 
 message = """
     'django-email-accounts' has detected that you just installed Django's authentication system (django.auth). 
@@ -17,32 +18,20 @@ def query_fix_usertable(sender, app, created_models, verbosity, interactive, **k
     model_names = [m.__name__ for m in created_models]
     if not interactive or app.__name__ != 'django.contrib.auth.models' or "User" not in model_names:
         return
-    
+
     answer = raw_input(message)
     while not answer.lower() in ('y', 'n', 'yes', 'no'):
-        raw_input("You need to either decide yes ('y') or no ('n'). Default is no. (y/N): ")
-        
-    from django.db import connection
-    cursor = connection.cursor()
-    cursor.execute('ALTER TABLE "auth_user" RENAME TO "auth_user_temp"')
-    try:
-        cursor.execute('CREATE TABLE "auth_user" ("id" integer NOT NULL PRIMARY KEY,"username" varchar(75) NOT NULL UNIQUE,"first_name" varchar(30) NOT NULL,"last_name" varchar(30) NOT NULL,"email" varchar(75) NOT NULL,"password" varchar(128) NOT NULL,"is_staff" bool NOT NULL,"is_active" bool NOT NULL,"is_superuser" bool NOT NULL,"last_login" datetime NOT NULL,"date_joined" datetime NOT NULL)')
-    except:
-        cursor.execute('CREATE TABLE "auth_user" (\
-    "id" serial NOT NULL PRIMARY KEY,\
-    "username" varchar(30) NOT NULL UNIQUE,\
-    "first_name" varchar(30) NOT NULL,\
-    "last_name" varchar(30) NOT NULL,\
-    "email" varchar(75) NOT NULL,\
-    "password" varchar(128) NOT NULL,\
-    "is_staff" boolean NOT NULL,\
-    "is_active" boolean NOT NULL,\
-    "is_superuser" boolean NOT NULL,\
-    "last_login" timestamp with time zone NOT NULL,\
-    "date_joined" timestamp with time zone NOT NULL)')
-    
+        answer = raw_input("You need to either decide yes ('y') or no ('n'). Default is no. (y/N): ")
 
-    cursor.execute('INSERT INTO "auth_user" SELECT * FROM "auth_user_temp"')
-    cursor.execute('DROP TABLE "auth_user_temp"')
-    
+    if answer.lower()[0] == 'y':
+        try:
+            from django.db import connection
+            cursor = connection.cursor()
+            cursor.execute("ALTER TABLE auth_user MODIFY COLUMN username varchar(75) NOT NULL")
+        except:
+            from django.db import transaction
+            connection._rollback()
+            cursor.execute('ALTER TABLE auth_user ALTER COLUMN username type varchar(75)')
+            transaction.commit_unless_managed()
+            
 post_syncdb.connect(query_fix_usertable)

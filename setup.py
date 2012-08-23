@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='django-email-usernames',
-    version='0.2',
+    version='0.2.1',
     description="User's email address for login and authentication in Django.",
     long_description=open('README.rst').read(),
     author='Håkan Waara',
