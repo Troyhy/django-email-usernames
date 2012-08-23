@@ -24,6 +24,9 @@ def query_fix_usertable(sender, app, created_models, verbosity, interactive, **k
         
     from django.db import connection
     cursor = connection.cursor()
-    cursor.execute("ALTER TABLE auth_user MODIFY COLUMN username varchar(75) NOT NULL")
+    cursor.execute('ALTER TABLE "auth_user" RENAME TO "auth_user_temp"')
+    cursor.execute('CREATE TABLE "auth_user" ("id" integer NOT NULL PRIMARY KEY,"username" varchar(75) NOT NULL UNIQUE,"first_name" varchar(30) NOT NULL,"last_name" varchar(30) NOT NULL,"email" varchar(75) NOT NULL,"password" varchar(128) NOT NULL,"is_staff" bool NOT NULL,"is_active" bool NOT NULL,"is_superuser" bool NOT NULL,"last_login" datetime NOT NULL,"date_joined" datetime NOT NULL)')
+    cursor.execute('INSERT INTO "auth_user" SELECT * FROM "auth_user_temp"')
+    cursor.execute('DROP TABLE "auth_user_temp"')
     
 post_syncdb.connect(query_fix_usertable)

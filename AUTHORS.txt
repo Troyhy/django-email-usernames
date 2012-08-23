@@ -1,1 +1,2 @@
 django-email-usernames was developed by Håkan Waara <hwaara@gmail.com>
+Extended by Ian Zamojc at Zamtools Inc. <izamojc@zamtools.com>

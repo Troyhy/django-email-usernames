@@ -2,6 +2,7 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth import authenticate
+from django.contrib.auth.forms import AuthenticationForm
 
 try:
     # If you have django-registration installed, this is a form you can
@@ -20,20 +21,15 @@ try:
 except ImportError:
     pass
 
-class EmailLoginForm(forms.Form):
-    email = forms.CharField(label=_("Email"), max_length=75, widget=forms.TextInput(attrs=dict(maxlength=75)))
-    password = forms.CharField(label=_(u"Password"), widget=forms.PasswordInput)
+class EmailLoginForm(AuthenticationForm):
+    email = forms.EmailField(label=_("Email"), max_length=75, widget=forms.TextInput(attrs=dict(maxlength=75)))
+
+    def __init__(self, *args, **kwargs):
+        result = super(EmailLoginForm, self).__init__(*args, **kwargs)
+        del self.fields['username']
+        self.fields.keyOrder = ['email', 'password']
+        return result
 
     def clean(self):
-        # Try to authenticate the user
-        if self.cleaned_data.get('email') and self.cleaned_data.get('password'):
-            user = authenticate(username=self.cleaned_data['email'], password=self.cleaned_data['password'])
-            if user is not None:
-                if user.is_active:
-                    self.user = user # So the login view can access it
-                else:
-                    raise forms.ValidationError(_("This account is inactive."))
-            else:
-                raise forms.ValidationError(_("Please enter a correct username and password. Note that both fields are case-sensitive."))
-
-        return self.cleaned_data
+        self.cleaned_data['username'] = self.cleaned_data.get('email')
+        return super(EmailLoginForm, self).clean()
